@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Transaction Engine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+</head>
+<body>
+
+<div class="container">
+  <header class="app-header">
+    <div class="header-inner">
+      <div>
+        <h1>Financial Transaction Engine</h1>
+        <p>Import bank or credit card exports → categorize → generate financial statements.</p>
+      </div>
+      <span class="version-badge">v1.0 · local</span>
+    </div>
+  </header>
+
+  <!-- Step nav -->
+  <nav class="step-nav" role="tablist">
+    <button class="step-btn active" onclick="goStep(1)" id="sn1">
+      <span class="step-dot">1</span><span class="step-label">Setup</span>
+    </button>
+    <button class="step-btn" onclick="goStep(2)" id="sn2">
+      <span class="step-dot">2</span><span class="step-label">Import</span>
+    </button>
+    <button class="step-btn" onclick="goStep(3)" id="sn3">
+      <span class="step-dot">3</span><span class="step-label">Categorize</span>
+    </button>
+    <button class="step-btn" onclick="goStep(4)" id="sn4">
+      <span class="step-dot">4</span><span class="step-label">Statements</span>
+    </button>
+  </nav>
+
+  <!-- ─── STEP 1: SETUP ─────────────────────────────────────── -->
+  <section id="step1" class="panel">
+    <div class="panel-title">Business setup</div>
+    <div class="panel-sub">Tell us about your business so statements use the right structure and labels.</div>
+
+    <div class="form-row">
+      <label for="biz-name">Business name</label>
+      <input type="text" id="biz-name" placeholder="Acme Corp.">
+    </div>
+
+    <div class="form-row">
+      <label>Business structure</label>
+      <div class="radio-group" id="biz-structure">
+        <label class="radio-card selected" onclick="selectStructure(this,'sole')">
+          <input type="radio" name="structure" value="sole" checked>
+          <div class="rc-title">Sole proprietorship</div>
+          <div class="rc-sub">Single owner — uses "Owner's equity"</div>
+        </label>
+        <label class="radio-card" onclick="selectStructure(this,'partnership')">
+          <input type="radio" name="structure" value="partnership">
+          <div class="rc-title">Partnership</div>
+          <div class="rc-sub">Two or more owners — uses "Partners' equity"</div>
+        </label>
+        <label class="radio-card" onclick="selectStructure(this,'corp')">
+          <input type="radio" name="structure" value="corp">
+          <div class="rc-title">Corporation (C/S-Corp)</div>
+          <div class="rc-sub">Shareholders — uses "Shareholders' equity"</div>
+        </label>
+        <label class="radio-card" onclick="selectStructure(this,'llc')">
+          <input type="radio" name="structure" value="llc">
+          <div class="rc-title">LLC</div>
+          <div class="rc-sub">Members — uses "Members' equity"</div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-row period-row">
+      <div>
+        <label for="period-start">Period start</label>
+        <input type="text" id="period-start" placeholder="2024-01-01">
+      </div>
+      <div>
+        <label for="period-end">Period end</label>
+        <input type="text" id="period-end" placeholder="2024-12-31">
+      </div>
+      <div>
+        <label for="currency">Currency</label>
+        <select id="currency">
+          <option value="CAD">CAD ($)</option>
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goStep(2)">Continue to import →</button>
+    </div>
+  </section>
+
+  <!-- ─── STEP 2: IMPORT ────────────────────────────────────── -->
+  <section id="step2" class="panel hidden">
+    <div class="panel-title">Add accounts &amp; import transactions</div>
+    <div class="panel-sub">Each bank account or credit card is imported separately. You can add multiple accounts.</div>
+
+    <div class="form-row">
+      <label>Account type</label>
+      <div class="radio-group two-col">
+        <label class="radio-card selected" onclick="selectAcctType(this,'asset')" id="at-asset">
+          <input type="radio" name="acct-type" value="asset" checked>
+          <div class="rc-title"><i class="ti ti-building-bank"></i> Asset account</div>
+          <div class="rc-sub">Chequing, savings, cash — you own these funds</div>
+        </label>
+        <label class="radio-card" onclick="selectAcctType(this,'liability')" id="at-liab">
+          <input type="radio" name="acct-type" value="liability">
+          <div class="rc-title"><i class="ti ti-credit-card"></i> Liability account</div>
+          <div class="rc-sub">Credit card, line of credit — you owe these funds</div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label for="acct-name">Account name</label>
+      <input type="text" id="acct-name" placeholder="e.g. TD Business Chequing">
+    </div>
+
+    <div class="form-row">
+      <label>
+        Paste CSV transactions
+        <button class="link-btn" onclick="loadSample()">load sample data</button>
+      </label>
+      <textarea id="csv-input" placeholder="date,description,amount&#10;2024-01-05,Client payment,2500.00&#10;2024-01-08,Office supplies,-89.50&#10;..."></textarea>
+      <div class="field-hint">Columns: <code>date, description, amount</code> — positive = credit into account, negative = debit</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="goStep(1)">← Back</button>
+      <button class="btn btn-primary" id="import-btn" onclick="importTransactions()">
+        <span id="import-btn-text">Import transactions →</span>
+        <span id="import-spinner" class="spinner hidden"></span>
+      </button>
+    </div>
+
+    <div id="imported-accounts" class="acct-list"></div>
+  </section>
+
+  <!-- ─── STEP 3: CATEGORIZE ────────────────────────────────── -->
+  <section id="step3" class="panel hidden">
+    <div class="step-header">
+      <div>
+        <div class="panel-title">Categorize transactions</div>
+        <div class="panel-sub">Review AI-suggested categories and adjust where needed. Changes save instantly.</div>
+      </div>
+      <span class="ai-badge"><i class="ti ti-sparkles"></i> AI-ready</span>
+    </div>
+
+    <div class="info-box" id="cat-info">
+      <i class="ti ti-info-circle"></i>
+      <span id="cat-summary-text">Import transactions to begin categorizing.</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="tx-table" id="tx-table">
+        <thead>
+          <tr>
+            <th class="col-date">Date</th>
+            <th class="col-desc">Description</th>
+            <th class="col-acct">Account</th>
+            <th class="col-amount">Amount</th>
+            <th class="col-cat">Category</th>
+            <th class="col-type">Type</th>
+            <th class="col-ai" title="AI suggested"><i class="ti ti-sparkles"></i></th>
+          </tr>
+        </thead>
+        <tbody id="tx-body">
+          <tr><td colspan="7" class="empty-state">No transactions imported yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="goStep(2)">← Add more accounts</button>
+      <button class="btn btn-primary" onclick="generateStatements()">Generate statements →</button>
+    </div>
+  </section>
+
+  <!-- ─── STEP 4: STATEMENTS ────────────────────────────────── -->
+  <section id="step4" class="panel hidden">
+    <div class="stmt-top">
+      <div>
+        <div class="panel-title" id="stmt-company-name">Financial statements</div>
+        <div class="stmt-period" id="stmt-period-label"></div>
+      </div>
+      <div class="stmt-actions">
+        <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Export CSV</button>
+        <button class="btn btn-sm btn-primary" onclick="window.print()"><i class="ti ti-printer"></i> Print</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showStmt('income')">Income statement</button>
+      <button class="tab" onclick="showStmt('balance')">Balance sheet</button>
+      <button class="tab" onclick="showStmt('txlog')">Transaction log</button>
+    </div>
+
+    <div id="stmt-income"></div>
+    <div id="stmt-balance" class="hidden"></div>
+    <div id="stmt-txlog" class="hidden"></div>
+
+    <div class="btn-row" style="margin-top:1.25rem">
+      <button class="btn" onclick="goStep(3)">← Back to categorize</button>
+      <button class="btn btn-sm" onclick="goStep(2)">+ Add another account</button>
+    </div>
+  </section>
+
+</div><!-- /container -->
+
+<!-- Pass categories from Python to JS -->
+<script>
+  const CATEGORIES = {{ categories | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
